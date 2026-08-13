@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -14,6 +15,20 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 
+interface AuthenticatedRequest extends Request {
+  user: {
+    id: number;
+  };
+}
+
+interface CreateBookingBody {
+  customerName: string;
+  customerEmail: string;
+  bookingDate: string;
+  notes?: string;
+  serviceId: number;
+}
+
 @Controller('bookings')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class BookingsController {
@@ -21,10 +36,15 @@ export class BookingsController {
 
   @Post()
   @Roles('ADMIN', 'MANAGER', 'STAFF')
-  create(@Body() body: any, @Request() req: any) {
+  create(
+    @Body() body: CreateBookingBody,
+    @Headers('Idempotency-Key') idempotencyKey: string | undefined,
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.bookingsService.create({
       ...body,
       userId: req.user.id,
+      idempotencyKey,
     });
   }
 
